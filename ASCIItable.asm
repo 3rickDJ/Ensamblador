@@ -1,7 +1,4 @@
 ;--------------------------------------------------NOTAS--------------------------------------------------
-;CH = contador filas                                                                                     |
-;DH = control filas                                                                                      |
-;DL = columnas                                                                                           |
 ;                                                                                                        |
 ;PARA msg DB '00:?', 0 --> msg[0] = 1er DIGITO DE LA CADENA                                              |
 ;                      --> msg[1] = 2do DIGITO DE LA CADENA                                              |
@@ -9,128 +6,106 @@
 ;                      --> msg[3] = 4to DIGITO DE LA CADENA                                              |
 ;---------------------------------------------------------------------------------------------------------
 
-MOV BL, 00H    ;CONTADOR DEL VALOR ASCII A IMPRIMIR
-               ;INICIALMENTE BL=0H PARA EL CASO DEL PRIMER LOOP, PARA QUE SI O SI EMPIECE EN LA POSICION QUE 
-               ;CORRESPONDE (PARA EL PRIMER CONTADOR DE COLUMNAS)
-               
-MOV BH, 00H    ;aaaaaaaaaaaaaaaa
-MOV CX, 00FFH  ;ES EL CONTADOR MAX. AL QUE SE PUEDE LLEGAR EN EL LOOP
+MOV BL, 00H    ;Contador ascii
+MOV DL, 0      ;Contador columnas |  Inicio=0
+MOV DH, 0      ;Contador de filas |  Inicio=0
 
-MOV DL, 0      ;aaaaa ESTABLECER LA POSICION DEL CURSOR
+OTRO:            ;ciclo para imprimir otro caracter
+    CMP BL, 0H
+    JE PRINTING   ;Si es el primer caracter, no mover la columna
 
-OTRO:            ;(?)
-    CMP BL, 0H 
-    JE CONTINUE  ;IF BL=0 -> NO CAMBIA DE ESTAA MADRE ESTA MAL
-                 
-    MOV AH, 00H  ;(?)
-    MOV AL, BL
-    PUSH CX      ;SE GUARDA CH Y CL
-                 ;PUSH ALMACENA UN VALOR DE 16 BITS EN LA PILA
-    
-    MOV CH, 24   ;(24=18H) CH=18H PORQUE...???? 
-    DIV CH 
-    POP CX       ;GUARDA CH Y CL
-    CMP AH, 0    ;???? ALCH NO SE WE
-    
-    JNE CONTINUE ;SALTA SI QUIEN != CUAL OTRO ?????
-    ADD DL, 6    ; ???
-    
-    MOV CH, 0    ;REINICIA EN 0 EL CONTADOR DE FILAS
-    MOV DH, 0    ;REINICIA EN 0 EL CONTADOR DE FILAS ????????
-    JMP PRINTING ;SALTO INCONDICIONAL A PRINTING
-    
-CONTINUE:
-    ;ESTABLECER LA POSICION ACTUAL DEL CURSOR (??????)
-    MOV DH, CH   ;CONTADOR DE FILAS = CONTADOR ASCII
-    
+    MOV AH, 00H   ;para dividir AX/ CH
+
+    MOV AL, BL    ;dividir BL/24 para ver si el caracter BL es multiplo de 24, si es multiplo de 24, cambiar de columna y empezar en fila 0
+
+    MOV CH, 24   ; AL = AX/CH   y el resto va a quedar en AH. Si AH es 0, saltar a la siguiente columna
+    DIV CH
+    CMP AH, 0
+
+    JNE PRINTING ; Si AH no es 0, BL no es multiplo de 24. Seguir imprimiendo en la misma columna
+    ADD DL, 6    ; Sumar 6, para cambiar la posición del cursor 6 espacios a la derecha
+
+    MOV DH, 0    ; Poner la posición de la fila en la primera ó 0 (la primera linea)
+
 PRINTING:
-    INC CH       ;ALGO DE LA SIGUIENTE FILA ?????
-    PUSH BX      ;SE GUARDA BH Y BL (???????)
-    MOV BH, 0H   ;ALGO DE LA PAGINA #0-7 (???????)
-    MOV AH, 2H   ;PONER EL CURSOR EN LA POSICION ADECUADA
+    MOV BH, 0H   ; Establecer la página en la que queremos establecer nuestro cursor
+    MOV AH, 2H   ;PONER EL CURSOR EN LA POSICION ADECUADA. DL:=columnas, DH:= filas, BH:= página
     INT 10H
-    
-    POP BX       ;????
-    
-    MOV AL, BL   ;PA K?????
-    PUSH AX      ;SE GUARDA AH Y AL (????)
-    SHR AL, 4    ;DESPLACE TODOS LOS BITS A LA DERECHA 4 VECES, EL BIT QUE SE APAGA SE ESTABLECE EN CF QUEMASPONGO?????
-    
-    ;PARTE QUE CONVIERTE EL 1er NIBLE DE HEX --> ASCII 
-    CMP AL, 09H   ;PARA IDENTIFICAR SI EL CONTADOR HEXADECIMAL VA A EMPEZAR A USAR LETRAS EN EL CONTADOR
-    JG SALTAR     ;SALTO CORTO SI EL 1er OPERANDO ES MAYOR QUE EL 2do OPERANDO (SEGUN LO ESTABLECIDO POR 
-                  ;LA INSTRUCCION CMP)
-    ADD AL, 30H   ;ESTO PA K ERA NO ME ACUERDO??? XD
+
+    INC DH       ; Incrementar en 1 la posición de la fila <=> imprimir en la siguiente fila
+
+                 ;obtener el numero en hexadecimal y prepararlo para imprimirlo como caracteres ========================================================
+                 ; Obtener los dígitos en hexadecimal del caracter ASCII en cuestión
+                 ; Tenemos el número en binario del caracter BL
+                 ; # Convertir de binario a hexadecimal
+                 ; 1. Dividimos el número binario en 2 nibles (1nible=4bits)
+                 ; 2. Aislamos  el  nible. ( El nible toma un valor del 0 a la F)
+                 ; 4. Tratamos el nible de forma que tome su correspondiente valor dentro de la tabla ASCII para poder
+                 ;      representar un número del 0-F e jmprimirlo como un caracter en pantalla.
+
+    MOV AL, BL   ; 1st Nible (aislar el primer nible)
+    SHR AL, 4    ;DESPLACE TODOS LOS BITS A LA DERECHA 4 VECES. Obtenemos el dígito de la ´izquierda´
+                 ; Es un número del 0-9 --> sumar 30H para ser un número en la tabla ascii
+    CMP AL, 09H
+    JG SALTAR
+
+    ADD AL, 30H
     JMP CONTINUAR
-    
+
 SALTAR:
-    ADD AL, 37H   ;ESTO PA K ERA NO ME ACUERDO??? XD
-    
+                 ; Es un número del A-F --> sumar 37H para ser una letra (mayúscula)  en la tabla ascii
+    ADD AL, 37H
+
 CONTINUAR:
- 
+
     ;======ALMACENA MSG[0] ---- CARGAR DIRECCION DE "MSG" A SI
-    
+
     LEA SI, MSG   ;CARGA LA DIRECCION EFECTIVA DE MSG (???)
-    
-    MOV [SI], AL
-    
-    ;=======
-    
-    POP AX          ;aaaaaaaa
-    AND AL, 0FH     ;HACE UNA OPERACION AND ENTRE LOS BITS DEeeeee Y DEeeeeeee PARA...??
-    
-    CMP AL, 09H     ;
-    JG SALTAR2      ;a
-    ADD AL, 30H     ;
-    JMP CONTINUAR2  ;
-    
+
+    MOV [SI], AL ;cargar primer digito al primer elemento de la cadena msg
+
+
+    MOV AL,BL       ; VAMOS CON EL SEGUNDO NIBLE
+    AND AL, 0FH     ; Aplicamos la operación AND entre BL y 00001111, para aislar el segundo nible
+    CMP AL, 09H     ;Es un número del 0-9 --> sumar 30H para ser un número en la tabla ascii
+    JG SALTAR2
+    ADD AL, 30H
+    JMP CONTINUAR2
+
 SALTAR2:
-    ADD AL, 37H     ;PQ???
-    
-CONTINUAR2:                                                   
+                    ; Es un número del A-F --> sumar 37H para ser una letra (mayúscula)  en la tabla ascii
+    ADD AL, 37H
+CONTINUAR2:
 
     ;======ALMACENA msg[1] ---- CARGAR DIRECCION DE msg A SI
     MOV [SI+1], AL
-    ;======
-    
+;================================================================================================================================
+
     ;======ALMACENA msg[3] ---- CARGAR DIRECCION DE msg A SI
     MOV [SI+3], BL
-    ;====== 
-    
-    ;===== IMPRIMIR msg ====
-    CALL PRINT
-    ;=====
-    
-    CMP BL, 255     ;PARA CHECAR SI YA LLEGO AL ULTIMO VALOR ASCII POR IMPRIMIR
-    JE ENDF         ;EN CASO DE QUE SE SEA CIERTO, SE ACABA EL PROGRAMA
-    INC BL          ;SI NO, SE HACE BL++
-    
-    LOOP OTRO       ;LOOP DISMINUYE CX, SALTA A LA ETIQUETA SI CX NO ES CERO
-    
-ENDF:
-    INT 20          ;FIN uwu
-    
-;===== APARTADO PARA LOS PROCEDIMIENTOS =====
 
-PRINT PROC
-    ;GUARDAR VARIABLES
-    PUSH AX
-    
-NEXT_CHAR: 
+    ;===== IMPRIMIR msg ==========================================================================================
+    NEXT_CHAR:
 
-    CMP b.[SI],0    ;CHECA SI SE LLEGO AL 0 QUE MARCA QUE...
-    JE STOP
-    MOV AL, [SI]    ;XD?????
-    MOV AH, 0EH     ;???????
+    CMP b.[SI],0    ;El byte en la posición SI del arreglo msg es 0?
+    JE STOP         ;Parar
+    MOV AL, [SI]    ;Mover el elemento SI a AL para imprimirlo
+    MOV AH, 0EH     ;INTERRUPCION 0EH de la 10H
     INT 10H         ;INTERRUPCION 10H
-    
-    ADD SI,1        ;ARRAY[n+1]
-    JMP NEXT_CHAR   ;HACE QUE SE HAGA UNA ESPECIE DE LOOP ????
 
-STOP:
-    POP AX
-    RET             ;RETORNA A LA SIG. INSTRUCCION
-    PRINT ENDP      ;???? ESTO K ES? xd
+    ADD SI,1        ;Sumar 1 a SI para avanzar al siguiente elemento en el arreglo msg
+    JMP NEXT_CHAR
+    STOP:
+    ;=============================================================================================================
+
+    CMP BL, 255     ;Si ya imprimimos todos los caracteres ascii, terminamos el programa
+    JE ENDF
+    INC BL          ;Si aún no acabamos, le sumamos 1 a BL, para imprimir el siguiente caracter
+
+    JMP OTRO
+
+ENDF:
+    INT 20H
 
 ;===== APARTADO PARA LAS VARIABLES =====
 
