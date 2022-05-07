@@ -60,7 +60,7 @@ CONTINUAR:
 
                  ; ======ALMACENA MSG[0] ---- CARGAR DIRECCION DE "MSG" A SI
 
-    LEA SI, MSG  ; CARGA LA DIRECCION EFECTIVA DE MSG (???)
+    LEA SI, MSG   ;CARGA LA DIRECCION EFECTIVA DE MSG
 
     MOV [SI], AL ; cargar primer digito al primer elemento de la cadena msg
 
