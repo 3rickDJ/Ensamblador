@@ -90,7 +90,7 @@ CONTINUAR2:
     CMP b.[SI],0 ; El byte en la posición SI del arreglo msg es 0?
     JE STOP      ; Parar
     MOV AL, [SI] ; Mover el elemento SI a AL para imprimirlo
-    MOV AH, 0EH  ; INTERRUPCION 0EH de la 10H
+    MOV AH, 0EH  ; Servicio  0EH de la INTERRUPCION 10H
     INT 10H      ; INTERRUPCION 10H
 
     ADD SI,1     ; Sumar 1 a SI para avanzar al siguiente elemento en el arreglo msg
