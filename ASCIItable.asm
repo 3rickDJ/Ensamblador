@@ -10,9 +10,9 @@ MOV BL, 00H      ; Contador ascii
 MOV DL, 0        ; Contador columnas |  Inicio=0
 MOV DH, 0        ; Contador de filas |  Inicio=0
 
+JMP PRINTING  ; Si es el primer caracter, no mover la columna
+
 OTRO:            ; ciclo para imprimir otro caracter
-    CMP BL, 0H
-    JE PRINTING  ; Si es el primer caracter, no mover la columna
 
     MOV AH, 00H  ; para dividir AX/ CH
 
