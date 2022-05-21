@@ -15,35 +15,33 @@ LEA SI, MSG   ;CARGAR DIRECCIÓN DE MSG A SI
 ANOTHER:
 MOV AH,1
 INT 21H
-CMP AL,0DH    ; SE COMPARA CON UN "ENTER" EN ASCII
+CMP AL,0DH    ; SE COMPARA CON UN "ENTER" <CR> EN ASCII
 JE FINAL      ;SALTA HASTA END
 
 ;CONVERTIR DE MAYUSCULA A MINUSCULA
-; A-Z 5A=Z 41=A
+; A-Z 5A=' 41=A
 CMP AL, 41H  ; Comparar AL para comprobar que este en
 JL NEXT      ; el rango de 'A' a la 'Z'
 CMP AL, 5AH
 JG MINUSCULA
 ADD AL,20H   ; convertir de Mayuscula a minuscula
 JMP NEXT
-
+;AL >20H hasta este punto
 MINUSCULA:
-CMP AL,61H
-JL NEXT
+CMP AL,61H  ; Comparar AL para comprobar que este en
+JL NEXT     ; el rango de 'a' a la 'z'
 CMP AL,7AH
 JG NEXT
-SUB AL,20H
+SUB AL,20H  ; convertir de minuscula a Mayuscula
 JMP NEXT
 
-NEXT:          ;Guardar en la cadena el codigo ASCII
-MOV [SI], AL   ;MOV 1ST DIGIT TO msg[0]
+NEXT:
+MOV [SI], AL   ;Guardar caracter en la cadena el codigo ASCII
 INC SI
-JMP ANOTHER    ;SALTO INCONDICIONAL
+JMP ANOTHER    ;salto  a otro caracter
 
 FINAL:
 ; IMPRIMIR CADENA
-MOV AL,'$'   ;AGREGAMOS EL INDICADOR DEL FINAL DE UNA CADENA
-MOV [SI],AL  ;FIN DE LA CADENA
 LEA DX, MSG
 MOV AH, 9H
 INT 21H
